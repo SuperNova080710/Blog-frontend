@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Blog Frontend
 
-## Getting Started
+개인 블로그의 프론트엔드 프로젝트입니다.
 
-First, run the development server:
+현재 구현된 NestJS 기반 Blog Backend API와 연동하는 것을 기준으로 개발합니다.
+
+## 기술 스택
+
+* Next.js 16.3.5
+* React 19.2.8
+* TypeScript
+* Tailwind CSS 4
+* React Compiler
+* ESLint
+* Next.js App Router
+* Turbopack
+
+## 개발 환경
+
+* Node.js 22.x
+* npm
+
+## 실행 방법
+
+의존성을 설치합니다.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+개발 서버를 실행합니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run dev -- -p 3001
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+프론트엔드는 `3001` 포트를 사용하며, 백엔드 API는 개발 환경에서 `3000` 포트를 사용합니다.
 
-## Learn More
+브라우저에서 다음 주소로 접속합니다.
 
-To learn more about Next.js, take a look at the following resources:
+```text
+http://localhost:3001
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 주요 명령어
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# 개발 서버
+npm run dev
 
-## Deploy on Vercel
+# ESLint 검사
+npm run lint
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Production 빌드
+npm run build
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Production 서버
+npm run start
+```
+
+## 프로젝트 구조
+
+```text
+src/
+└── app/
+    ├── favicon.ico
+    ├── globals.css
+    ├── layout.tsx
+    └── page.tsx
+```
+
+현재는 Next.js App Router의 초기 구조만 구성되어 있습니다.
+
+향후 기능 구현에 따라 API Client, 인증 상태, 게시글 관련 컴포넌트 및 페이지가 추가될 예정입니다.
+
+## 개발 방향
+
+프론트엔드는 현재 구현된 Backend API를 기준으로 기능을 구현합니다.
+
+개발 순서는 다음과 같이 진행합니다.
+
+1. 공통 레이아웃 및 페이지 구조
+2. Backend API Client
+3. 인증 API 및 인증 상태
+4. 로그인 및 회원가입
+5. Access Token / Refresh Token 처리
+6. 게시글 목록 및 페이지네이션
+7. 게시글 상세
+8. 게시글 작성
+9. 게시글 수정 및 삭제
+10. Loading / Error 처리
+11. UI 및 반응형 디자인
+12. 운영 환경 구성 및 배포
+
+기능 범위를 임의로 확장하지 않고 GitHub Issue 단위로 개발합니다.
