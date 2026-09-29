@@ -1,23 +1,15 @@
 import { apiClient } from "./client";
 import type { ApiResponse } from "./client";
-
-export type SignupRequest = {
-    email: string;
-    password: string;
-};
-
-export type LoginRequest = {
-    email: string;
-    password: string;
-};
-
-export type AuthTokenResponse = {
-    accessToken: string;
-    refreshToken: string;
-};
+import type {
+    AuthTokenResponse,
+    LoginRequest,
+    RefreshTokenRequest,
+    SignupRequest,
+    User,
+} from "@/types/auth";
 
 export async function signup(data: SignupRequest) {
-    const response = await apiClient.post<ApiResponse<unknown>>(
+    const response = await apiClient.post<ApiResponse<User>>(
         "/auth/signup",
         data,
     );
@@ -32,4 +24,30 @@ export async function login(data: LoginRequest) {
     );
 
     return response.data;
+}
+
+export async function getCurrentUser(accessToken: string) {
+    const response = await apiClient.get<ApiResponse<User>>(
+        "/auth/me",
+        {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        },
+    );
+
+    return response.data;
+}
+
+export async function refresh(data: RefreshTokenRequest) {
+    const response = await apiClient.post<ApiResponse<AuthTokenResponse>>(
+        "/auth/refresh",
+        data,
+    );
+
+    return response.data;
+}
+
+export async function logout(data: RefreshTokenRequest) {
+    await apiClient.post("/auth/logout", data);
 }
