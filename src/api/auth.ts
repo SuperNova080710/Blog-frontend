@@ -14,7 +14,7 @@ export async function signup(data: SignupRequest) {
         data,
     );
 
-    return response.data;
+    return response.data.data;
 }
 
 export async function login(data: LoginRequest) {
@@ -23,7 +23,7 @@ export async function login(data: LoginRequest) {
         data,
     );
 
-    return response.data;
+    return response.data.data;
 }
 
 export async function getCurrentUser(accessToken: string) {
@@ -36,7 +36,7 @@ export async function getCurrentUser(accessToken: string) {
         },
     );
 
-    return response.data;
+    return response.data.data;
 }
 
 export async function refresh(data: RefreshTokenRequest) {
@@ -45,7 +45,7 @@ export async function refresh(data: RefreshTokenRequest) {
         data,
     );
 
-    return response.data;
+    return response.data.data;
 }
 
 export async function logout(data: RefreshTokenRequest) {
