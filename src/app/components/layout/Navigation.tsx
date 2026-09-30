@@ -1,14 +1,27 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { setAuthFailureHandler } from "@/api/auth-failure";
 import { useAuthStore } from "@/stores/authStore";
 
 export default function Navigation() {
+    const router = useRouter();
     const isAuthenticated = useAuthStore(
         (state) => state.isAuthenticated,
     );
     const logout = useAuthStore((state) => state.logout);
 
+    useEffect(() => {
+        setAuthFailureHandler(() => {
+            router.push("/login");
+        });
+
+        return () => {
+            setAuthFailureHandler(() => { });
+        };
+    }, [router]);
     return (
         <nav aria-label="주요 메뉴">
             <ul className="flex flex-wrap items-center justify-end gap-4 text-sm sm:gap-6">
