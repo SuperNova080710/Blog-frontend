@@ -1,5 +1,12 @@
-import axios from "axios";
-import { getAccessToken } from "./token-storage";
+import axios, {
+    type AxiosError,
+    type InternalAxiosRequestConfig,
+} from "axios";
+import {
+    getAccessToken,
+    getRefreshToken,
+    setTokens,
+} from "./token-storage";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -17,6 +24,22 @@ export type ApiError = {
     error?: string;
 };
 
+type AuthTokenResponse = {
+    accessToken: string;
+    refreshToken: string;
+};
+
+type RetryableRequestConfig = InternalAxiosRequestConfig & {
+    _retry?: boolean;
+};
+
+const refreshClient = axios.create({
+    baseURL: apiBaseUrl,
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
+
 export const apiClient = axios.create({
     baseURL: apiBaseUrl,
     headers: {
@@ -33,6 +56,53 @@ apiClient.interceptors.request.use((config) => {
 
     return config;
 });
+
+apiClient.interceptors.response.use(
+    (response) => response,
+    async (error: AxiosError) => {
+        const originalRequest = error.config as
+            | RetryableRequestConfig
+            | undefined;
+
+        if (
+            error.response?.status !== 401 ||
+            !originalRequest ||
+            originalRequest._retry
+        ) {
+            return Promise.reject(error);
+        }
+
+        originalRequest._retry = true;
+
+        const refreshToken = getRefreshToken();
+
+        if (!refreshToken) {
+            return Promise.reject(error);
+        }
+
+        try {
+            const response = await refreshClient.post<
+                ApiResponse<AuthTokenResponse>
+            >(
+                "/auth/refresh",
+                {
+                    refreshToken,
+                },
+            );
+
+            const tokenResponse = response.data.data;
+
+            setTokens(
+                tokenResponse.accessToken,
+                tokenResponse.refreshToken,
+            );
+
+            return Promise.reject(error);
+        } catch (refreshError) {
+            return Promise.reject(refreshError);
+        }
+    },
+);
 
 export function getApiError(error: unknown): ApiError {
     if (axios.isAxiosError<ApiError>(error) && error.response?.data) {
