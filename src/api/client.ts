@@ -3,10 +3,12 @@ import axios, {
     type InternalAxiosRequestConfig,
 } from "axios";
 import {
+    clearTokens,
     getAccessToken,
     getRefreshToken,
     setTokens,
 } from "./token-storage";
+import { handleAuthFailure } from "./auth-failure";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -77,6 +79,9 @@ apiClient.interceptors.response.use(
         const refreshToken = getRefreshToken();
 
         if (!refreshToken) {
+            clearTokens();
+            handleAuthFailure();
+
             return Promise.reject(error);
         }
 
@@ -97,8 +102,11 @@ apiClient.interceptors.response.use(
                 tokenResponse.refreshToken,
             );
 
-            return Promise.reject(error);
+            return apiClient(originalRequest);
         } catch (refreshError) {
+            clearTokens();
+            handleAuthFailure();
+
             return Promise.reject(refreshError);
         }
     },

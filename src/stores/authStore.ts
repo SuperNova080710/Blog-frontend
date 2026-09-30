@@ -10,6 +10,7 @@ import {
     getAccessToken,
     getRefreshToken,
     setTokens,
+    subscribeToTokenChanges,
 } from "@/api/token-storage";
 import type {
     LoginRequest,
@@ -122,3 +123,21 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
     },
 }));
+
+subscribeToTokenChanges((tokens) => {
+    if (!tokens) {
+        useAuthStore.setState({
+            currentUser: null,
+            isAuthenticated: false,
+            accessToken: null,
+            refreshToken: null,
+        });
+
+        return;
+    }
+
+    useAuthStore.setState({
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+    });
+});
