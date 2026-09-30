@@ -35,6 +35,8 @@ type RetryableRequestConfig = InternalAxiosRequestConfig & {
     _retry?: boolean;
 };
 
+let refreshPromise: Promise<AuthTokenResponse> | null = null;
+
 const refreshClient = axios.create({
     baseURL: apiBaseUrl,
     headers: {
@@ -86,21 +88,30 @@ apiClient.interceptors.response.use(
         }
 
         try {
-            const response = await refreshClient.post<
-                ApiResponse<AuthTokenResponse>
-            >(
-                "/auth/refresh",
-                {
-                    refreshToken,
-                },
-            );
+            if (!refreshPromise) {
+                refreshPromise = refreshClient
+                    .post<ApiResponse<AuthTokenResponse>>(
+                        "/auth/refresh",
+                        {
+                            refreshToken,
+                        },
+                    )
+                    .then((response) => {
+                        const tokenResponse = response.data.data;
 
-            const tokenResponse = response.data.data;
+                        setTokens(
+                            tokenResponse.accessToken,
+                            tokenResponse.refreshToken,
+                        );
 
-            setTokens(
-                tokenResponse.accessToken,
-                tokenResponse.refreshToken,
-            );
+                        return tokenResponse;
+                    })
+                    .finally(() => {
+                        refreshPromise = null;
+                    });
+            }
+
+            await refreshPromise;
 
             return apiClient(originalRequest);
         } catch (refreshError) {
