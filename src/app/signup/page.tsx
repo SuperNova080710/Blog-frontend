@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { getApiError } from "@/api/client";
+import { useAuthStore } from "@/stores/authStore";
+import { useRouter } from "next/navigation";
 
 type SignupForm = {
     email: string;
@@ -10,12 +13,21 @@ type SignupForm = {
 
 type SignupErrors = Partial<Record<keyof SignupForm, string>>;
 
+function getErrorMessage(message: string | string[]) {
+    return Array.isArray(message) ? message.join(", ") : message;
+}
+
 export default function SignupPage() {
+    const router = useRouter();
+    const signup = useAuthStore((state) => state.signup);
+
     const [form, setForm] = useState<SignupForm>({
         email: "",
         password: "",
     });
     const [errors, setErrors] = useState<SignupErrors>({});
+    const [submitError, setSubmitError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const validate = () => {
         const nextErrors: SignupErrors = {};
@@ -28,6 +40,8 @@ export default function SignupPage() {
 
         if (!form.password) {
             nextErrors.password = "비밀번호를 입력해주세요.";
+        } else if (form.password.length < 8) {
+            nextErrors.password = "비밀번호는 8자 이상이어야 합니다.";
         }
 
         setErrors(nextErrors);
@@ -35,11 +49,26 @@ export default function SignupPage() {
         return Object.keys(nextErrors).length === 0;
     };
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        setSubmitError("");
 
         if (!validate()) {
             return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            await signup(form);
+            router.push("/login");
+        } catch (error) {
+            const apiError = getApiError(error);
+
+            setSubmitError(getErrorMessage(apiError.message));
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -54,7 +83,10 @@ export default function SignupPage() {
 
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
                 <div className="space-y-2">
-                    <label htmlFor="email" className="block text-sm font-medium">
+                    <label
+                        htmlFor="email"
+                        className="block text-sm font-medium"
+                    >
                         이메일
                     </label>
                     <input
@@ -67,6 +99,7 @@ export default function SignupPage() {
                                 ...current,
                                 email: event.target.value,
                             }));
+                            setSubmitError("");
                         }}
                         className="w-full rounded-md border border-foreground/20 px-3 py-2 outline-none focus:border-foreground"
                         autoComplete="email"
@@ -93,6 +126,7 @@ export default function SignupPage() {
                                 ...current,
                                 password: event.target.value,
                             }));
+                            setSubmitError("");
                         }}
                         className="w-full rounded-md border border-foreground/20 px-3 py-2 outline-none focus:border-foreground"
                         autoComplete="new-password"
@@ -104,11 +138,21 @@ export default function SignupPage() {
                     )}
                 </div>
 
+                {submitError && (
+                    <p
+                        role="alert"
+                        className="text-sm text-red-600"
+                    >
+                        {submitError}
+                    </p>
+                )}
+
                 <button
                     type="submit"
-                    className="w-full rounded-md bg-foreground px-4 py-2 text-background transition-opacity hover:opacity-80"
+                    disabled={isSubmitting}
+                    className="w-full rounded-md bg-foreground px-4 py-2 text-background transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    회원가입
+                    {isSubmitting ? "회원가입 중..." : "회원가입"}
                 </button>
             </form>
 

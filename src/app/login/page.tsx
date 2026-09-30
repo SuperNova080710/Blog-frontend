@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { getApiError } from "@/api/client";
+import { useAuthStore } from "@/stores/authStore";
+import { useRouter } from "next/navigation";
 
 type LoginForm = {
     email: string;
@@ -10,12 +13,21 @@ type LoginForm = {
 
 type LoginErrors = Partial<Record<keyof LoginForm, string>>;
 
+function getErrorMessage(message: string | string[]) {
+    return Array.isArray(message) ? message.join(", ") : message;
+}
+
 export default function LoginPage() {
+    const router = useRouter();
+    const login = useAuthStore((state) => state.login);
+
     const [form, setForm] = useState<LoginForm>({
         email: "",
         password: "",
     });
     const [errors, setErrors] = useState<LoginErrors>({});
+    const [submitError, setSubmitError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const validate = () => {
         const nextErrors: LoginErrors = {};
@@ -28,6 +40,8 @@ export default function LoginPage() {
 
         if (!form.password) {
             nextErrors.password = "비밀번호를 입력해주세요.";
+        } else if (form.password.length < 8) {
+            nextErrors.password = "비밀번호는 8자 이상이어야 합니다.";
         }
 
         setErrors(nextErrors);
@@ -35,11 +49,26 @@ export default function LoginPage() {
         return Object.keys(nextErrors).length === 0;
     };
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        setSubmitError("");
 
         if (!validate()) {
             return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            await login(form);
+            router.push("/posts");
+        } catch (error) {
+            const apiError = getApiError(error);
+
+            setSubmitError(getErrorMessage(apiError.message));
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -54,7 +83,10 @@ export default function LoginPage() {
 
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
                 <div className="space-y-2">
-                    <label htmlFor="email" className="block text-sm font-medium">
+                    <label
+                        htmlFor="email"
+                        className="block text-sm font-medium"
+                    >
                         이메일
                     </label>
                     <input
@@ -67,6 +99,7 @@ export default function LoginPage() {
                                 ...current,
                                 email: event.target.value,
                             }));
+                            setSubmitError("");
                         }}
                         className="w-full rounded-md border border-foreground/20 px-3 py-2 outline-none focus:border-foreground"
                         autoComplete="email"
@@ -93,6 +126,7 @@ export default function LoginPage() {
                                 ...current,
                                 password: event.target.value,
                             }));
+                            setSubmitError("");
                         }}
                         className="w-full rounded-md border border-foreground/20 px-3 py-2 outline-none focus:border-foreground"
                         autoComplete="current-password"
@@ -104,11 +138,21 @@ export default function LoginPage() {
                     )}
                 </div>
 
+                {submitError && (
+                    <p
+                        role="alert"
+                        className="text-sm text-red-600"
+                    >
+                        {submitError}
+                    </p>
+                )}
+
                 <button
                     type="submit"
-                    className="w-full rounded-md bg-foreground px-4 py-2 text-background transition-opacity hover:opacity-80"
+                    disabled={isSubmitting}
+                    className="w-full rounded-md bg-foreground px-4 py-2 text-background transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    로그인
+                    {isSubmitting ? "로그인 중..." : "로그인"}
                 </button>
             </form>
 
