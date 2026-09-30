@@ -26,14 +26,9 @@ export async function login(data: LoginRequest) {
     return response.data.data;
 }
 
-export async function getCurrentUser(accessToken: string) {
+export async function getCurrentUser() {
     const response = await apiClient.get<ApiResponse<User>>(
         "/auth/me",
-        {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-            },
-        },
     );
 
     return response.data.data;

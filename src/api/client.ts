@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getAccessToken } from "./token-storage";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -21,6 +22,16 @@ export const apiClient = axios.create({
     headers: {
         "Content-Type": "application/json",
     },
+});
+
+apiClient.interceptors.request.use((config) => {
+    const accessToken = getAccessToken();
+
+    if (accessToken) {
+        config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+
+    return config;
 });
 
 export function getApiError(error: unknown): ApiError {

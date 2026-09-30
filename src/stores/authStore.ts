@@ -5,6 +5,12 @@ import {
     logout as logoutApi,
     signup as signupApi,
 } from "@/api/auth";
+import {
+    clearTokens,
+    getAccessToken,
+    getRefreshToken,
+    setTokens,
+} from "@/api/token-storage";
 import type {
     LoginRequest,
     SignupRequest,
@@ -23,7 +29,7 @@ type AuthState = {
     logout: () => Promise<void>;
 };
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
     currentUser: null,
     isAuthenticated: false,
     accessToken: null,
@@ -36,13 +42,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     login: async (data) => {
         const tokenResponse = await loginApi(data);
 
+        setTokens(
+            tokenResponse.accessToken,
+            tokenResponse.refreshToken,
+        );
+
         set({
             accessToken: tokenResponse.accessToken,
             refreshToken: tokenResponse.refreshToken,
         });
 
         try {
-            const user = await getCurrentUser(tokenResponse.accessToken);
+            const user = await getCurrentUser();
 
             set({
                 currentUser: user,
@@ -51,6 +62,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
             return user;
         } catch (error) {
+            clearTokens();
+
             set({
                 currentUser: null,
                 isAuthenticated: false,
@@ -63,18 +76,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     },
 
     fetchCurrentUser: async () => {
-        const accessToken = get().accessToken;
+        const accessToken = getAccessToken();
 
         if (!accessToken) {
             throw new Error("Access Token이 없습니다.");
         }
 
         try {
-            const user = await getCurrentUser(accessToken);
+            const user = await getCurrentUser();
 
             set({
                 currentUser: user,
                 isAuthenticated: true,
+                accessToken,
+                refreshToken: getRefreshToken(),
             });
 
             return user;
@@ -89,13 +104,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     },
 
     logout: async () => {
-        const refreshToken = get().refreshToken;
+        const refreshToken = getRefreshToken();
 
         try {
             if (refreshToken) {
                 await logoutApi({ refreshToken });
             }
         } finally {
+            clearTokens();
+
             set({
                 currentUser: null,
                 isAuthenticated: false,
