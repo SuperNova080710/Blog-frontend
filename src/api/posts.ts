@@ -1,10 +1,13 @@
 import { apiClient } from "./client";
-import type { ApiResponse } from "./client";
+import type { PostListResponse } from "@/types/post";
 
-export type PostResponse<T> = ApiResponse<T>;
-
-export async function getPosts<T = unknown>() {
-    const response = await apiClient.get<PostResponse<T>>("/posts");
+export async function getPosts(page = 1, limit = 10) {
+    const response = await apiClient.get<PostListResponse>("/posts", {
+        params: {
+            page,
+            limit,
+        },
+    });
 
     return response.data;
 }
