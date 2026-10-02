@@ -13,7 +13,7 @@ export async function getPosts(page = 1, limit = 10) {
 }
 
 export async function getPost(id: number) {
-    const response = await apiClient.get<Post>(`/posts/${id}`);
+    const response = await apiClient.get<{ data: Post }>(`/posts/${id}`);
 
-    return response.data;
+    return response.data.data;
 }
