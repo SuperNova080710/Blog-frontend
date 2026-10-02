@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { PostListResponse } from "@/types/post";
+import type { Post, PostListResponse } from "@/types/post";
 
 export async function getPosts(page = 1, limit = 10) {
     const response = await apiClient.get<PostListResponse>("/posts", {
@@ -10,4 +10,10 @@ export async function getPosts(page = 1, limit = 10) {
     });
 
     return response.data;
+}
+
+export async function getPost(id: number) {
+    const response = await apiClient.get<{ data: Post }>(`/posts/${id}`);
+
+    return response.data.data;
 }
