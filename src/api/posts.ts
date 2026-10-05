@@ -17,3 +17,12 @@ export async function getPost(id: number) {
 
     return response.data.data;
 }
+
+export async function createPost(data: {
+    title: string;
+    content: string;
+}) {
+    const response = await apiClient.post<{ data: Post }>("/posts", data);
+
+    return response.data.data;
+}
