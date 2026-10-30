@@ -50,9 +50,9 @@ curl -I http://127.0.0.1:3100/
 
 이 단계에서는 `/api` 프록시 및 실제 백엔드가 없으므로 **로그인, 게시글 상세 SSR, API 요청 정상 동작을 보장하거나 완료 처리하지 않습니다.** 그러한 시험은 별도 내부 API 주소, 프록시 및 새 프로젝트 DB가 구성된 이후 실행합니다.
 
-## 2026-10-30 실제 개발 환경 1차 검증
+## 2026-10-30 Ubuntu 터미널 1차 검증
 
-`feat/22-nextjs-container-image`를 Ubuntu 개발 환경에 체크아웃하고 `npm ci`, `npm run lint`, `NEXT_PUBLIC_API_BASE_URL=/api npm run build`를 실행한 결과입니다.
+`feat/22-nextjs-container-image`를 사용자 Ubuntu 터미널에서 체크아웃하고 `npm ci`, `npm run lint`, `NEXT_PUBLIC_API_BASE_URL=/api npm run build`를 실행한 결과입니다.
 
 | 검사 | 결과 | 해석 |
 | --- | --- | --- |
@@ -79,7 +79,7 @@ NEXT_PUBLIC_API_BASE_URL=/api npm run build
 npm audit --omit=dev
 ```
 
-위 명령은 별도 개발 환경을 기준으로 하며, 운영 SSH-only 서버의 Docker/K3s/UFW/iptables 변경을 의미하지 않습니다.
+위 검증을 수행한 Ubuntu 장비가 실제 SSH-only 운영 서버와 동일한 장비인지는 확인되지 않았습니다. Docker 빌드·실행 단계는 별도 격리 개발 환경을 권장하며, K3s/UFW/iptables 변경은 별도 승인 전 진행하지 않습니다.
 
 ## 배포 전 필수 검증
 
