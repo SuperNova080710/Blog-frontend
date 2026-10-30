@@ -1,6 +1,6 @@
 # 컨테이너 이미지 준비 및 검증 (#22)
 
-> 상태: 코드/설정 초안, **Docker 이미지 빌드·실행·K3s 배포 미검증**
+> 상태: 로컬 npm ci·ESLint PASS, 최초 Next.js build FAIL로 /posts Suspense·Turbopack root 수정. **수정 후 빌드 재검증/컨테이너 실행/K3s 배포 미검증**
 > 연계: [2차 네트워크 프로젝트 #22](https://github.com/SuperNova080710/2nd-project-docs/issues/22), [#24](https://github.com/SuperNova080710/2nd-project-docs/issues/24), [#26](https://github.com/SuperNova080710/2nd-project-docs/issues/26)
 
 ## 변경 목적
@@ -49,6 +49,37 @@ curl -I http://127.0.0.1:3100/
 ```
 
 이 단계에서는 `/api` 프록시 및 실제 백엔드가 없으므로 **로그인, 게시글 상세 SSR, API 요청 정상 동작을 보장하거나 완료 처리하지 않습니다.** 그러한 시험은 별도 내부 API 주소, 프록시 및 새 프로젝트 DB가 구성된 이후 실행합니다.
+
+## 2026-10-30 실제 개발 환경 1차 검증
+
+`feat/22-nextjs-container-image`를 Ubuntu 개발 환경에 체크아웃하고 `npm ci`, `npm run lint`, `NEXT_PUBLIC_API_BASE_URL=/api npm run build`를 실행한 결과입니다.
+
+| 검사 | 결과 | 해석 |
+| --- | --- | --- |
+| `npm ci` | PASS, 451 packages | `EBADENGINE`과 npm audit 취약점 경고 6건 별도 조치 필요 |
+| `npm run lint` | PASS | ESLint 종료 오류 없음 |
+| `next build` 컴파일 및 TypeScript | PASS | 컴파일·타입 점검 완료 |
+| `/posts` 사전 렌더링 | FAIL | `useSearchParams()`가 `Suspense` 경계 밖에 존재 |
+| 초기 프로덕션 빌드 종료 | FAIL (exit 1) | 성공으로 보고하지 않음 |
+
+후속 수정: `src/app/posts/page.tsx`의 검색 파라미터 호출을 `Suspense` 하위 컴포넌트로 이동하고 화면 로딩 fallback 추가, `next.config.ts`에 `turbopack.root = process.cwd()` 명시. 수정 커밋 이후 빌드 성공 여부는 **미검증**입니다.
+
+Node `v22.11.0`에서 `eslint-visitor-keys@5.0.1`의 요구 조건 `^22.13.0` 이상을 만족하지 않아 경고가 발생합니다. Node 24 LTS 또는 지원되는 최신 22.x에서 재검증합니다. npm audit 6건(High 5, Critical 1)의 구체적인 영향은 [보안 점검 이슈 #26](../issues/26)에서 별도 분석합니다. `npm audit fix --force`는 승인·diff 검토 없이 실행하지 않습니다.
+
+## 수정 후 재검증 예정
+
+```bash
+git fetch origin feat/22-nextjs-container-image
+git switch feat/22-nextjs-container-image
+git pull --ff-only
+node -v
+npm ci
+npm run lint
+NEXT_PUBLIC_API_BASE_URL=/api npm run build
+npm audit --omit=dev
+```
+
+위 명령은 별도 개발 환경을 기준으로 하며, 운영 SSH-only 서버의 Docker/K3s/UFW/iptables 변경을 의미하지 않습니다.
 
 ## 배포 전 필수 검증
 
