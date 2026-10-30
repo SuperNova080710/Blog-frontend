@@ -1,6 +1,6 @@
 # 컨테이너 이미지 준비 및 검증 (#22)
 
-> 상태: 코드/설정 초안, **Docker 이미지 빌드·실행·K3s 배포 미검증**  
+> 상태: 코드/설정 초안, **Docker 이미지 빌드·실행·K3s 배포 미검증**
 > 연계: [2차 네트워크 프로젝트 #22](https://github.com/SuperNova080710/2nd-project-docs/issues/22), [#24](https://github.com/SuperNova080710/2nd-project-docs/issues/24), [#26](https://github.com/SuperNova080710/2nd-project-docs/issues/26)
 
 ## 변경 목적
