@@ -1,8 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
+  output: "standalone",
+  // Ignore unrelated lockfiles above this app when inferring the Turbopack root.
+  turbopack: {
+    root: process.cwd(),
+  },
 };
 
 export default nextConfig;

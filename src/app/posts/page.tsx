@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getPosts } from "@/api/posts";
@@ -9,6 +9,26 @@ import type { Post } from "@/types/post";
 const PAGE_SIZE = 10;
 
 export default function PostsPage() {
+    return (
+        <Suspense
+            fallback={
+                <section className="space-y-6">
+                    <h1 className="text-3xl font-bold">Posts</h1>
+                    <div
+                        className="rounded-lg border p-6 text-center text-foreground/70"
+                        aria-live="polite"
+                    >
+                        게시글을 불러오는 중입니다.
+                    </div>
+                </section>
+            }
+        >
+            <PostsPageContent />
+        </Suspense>
+    );
+}
+
+function PostsPageContent() {
     const searchParams = useSearchParams();
     const pageParam = Number(searchParams.get("page"));
     const page =

@@ -10,7 +10,13 @@ import {
 } from "./token-storage";
 import { handleAuthFailure } from "./auth-failure";
 
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+// Browser requests use the public same-origin gateway; server components may
+// use a private ClusterIP address without exposing it in the client bundle.
+const publicApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+const apiBaseUrl =
+    typeof window === "undefined"
+        ? process.env.API_INTERNAL_BASE_URL || publicApiBaseUrl
+        : publicApiBaseUrl;
 
 if (!apiBaseUrl) {
     throw new Error("NEXT_PUBLIC_API_BASE_URL 환경변수가 설정되지 않았습니다.");

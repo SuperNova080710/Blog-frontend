@@ -1,0 +1,22 @@
+# local credentials and environment files
+.env
+.env.*
+!.env.example
+
+# build output and dependency caches
+node_modules
+.next
+out
+coverage
+.nyc_output
+
+# editor, Git and local system data
+.git
+.github
+.vscode
+.idea
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
