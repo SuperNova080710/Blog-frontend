@@ -1,6 +1,6 @@
 # 컨테이너 이미지 준비 및 검증 (#22)
 
-> 상태: Ubuntu에서 npm ci/ESLint 및 **수정 후 Next.js 프로덕션 빌드 PASS**. **Critical 포함 audit 취약점 6건 및 컨테이너 실행/K3s 배포 미검증**
+> 상태: **Node 24.22.2 / Next.js 16.4.3에서 npm ci·ESLint·프로덕션 빌드 PASS, npm audit(전체/프로덕션) 0건**. 보안 커밋 `3641ae0` 원격 PR #25에 반영. Docker 실행·SSR/API/WAF 통합·K3s 배포는 미검증
 > 연계: [2차 네트워크 프로젝트 #22](https://github.com/SuperNova080710/2nd-project-docs/issues/22), [#24](https://github.com/SuperNova080710/2nd-project-docs/issues/24), [#26](https://github.com/SuperNova080710/2nd-project-docs/issues/26)
 
 ## 변경 목적
@@ -64,9 +64,9 @@ curl -I http://127.0.0.1:3100/
 
 후속 수정: `src/app/posts/page.tsx`의 검색 파라미터 호출을 `Suspense` 하위 컴포넌트로 이동하고 화면 로딩 fallback 추가, `next.config.ts`에 `turbopack.root = process.cwd()` 명시. **2026-10-30 재실행에서 build PASS**: 컴파일·TypeScript 통과, 정적 페이지 8/8 생성 및 `/posts` prerender 정상.
 
-Node `v22.11.0`에서 `eslint-visitor-keys@5.0.1`의 요구 조건 `^22.13.0` 이상을 만족하지 않아 경고가 발생합니다. Node 24 LTS 또는 지원되는 최신 22.x에서 재검증합니다. 상세 감사 결과: **프로덕션 4건(High 3, Critical 1), 전체 6건(High 5, Critical 1)**. 취약 경로 및 조치 이력은 [보안 점검 이슈 #26](../issues/26)을 참고합니다. `npm audit fix --force`를 무조건 실행하지 않습니다.
+Node `v22.11.0`에서 `eslint-visitor-keys@5.0.1`의 요구 조건 `^22.13.0` 이상을 만족하지 않아 경고가 발생합니다. 해당 구버전 환경에서는 경고가 있었습니다. 당시 감사 결과: **프로덕션 4건(High 3, Critical 1), 전체 6건(High 5, Critical 1)**. 이후 Node 24와 보안 패치 적용으로 둘 다 0건을 확인했습니다. 취약 경로 및 조치 이력은 [보안 점검 이슈 #26](../issues/26)을 참고합니다. `npm audit fix --force`를 무조건 실행하지 않습니다.
 
-## 수정 후 재검증 예정
+## 별도 환경 재검증 명령
 
 ```bash
 git fetch origin feat/22-nextjs-container-image
@@ -81,49 +81,30 @@ npm audit --omit=dev
 
 위 검증을 수행한 Ubuntu 장비가 실제 SSH-only 운영 서버와 동일한 장비인지는 확인되지 않았습니다. Docker 빌드·실행 단계는 별도 격리 개발 환경을 권장하며, K3s/UFW/iptables 변경은 별도 승인 전 진행하지 않습니다.
 
-## 프로덕션 의존성 취약점 조치 (2026-10-30)
+## 프로덕션 의존성 취약점 조치 결과 (2026-10-30)
 
-빌드가 성공해도 현재 고정된 `next@16.3.5`에 **Critical** 보안 공지가 적용됩니다. 운영 이미지 배포를 진행하지 않습니다.
+기존 `next@16.3.5` 및 전이 의존성의 감사 경고를 확인하고, 사용자 Ubuntu 환경에서 명시적 버전 업데이트 + `npm audit fix`(비강제)를 실행했습니다. 관련 두 파일은 사용자 커밋 [`3641ae0`](https://github.com/SuperNova080710/Blog-frontend/commit/3641ae05991941cd96cf8415ddd3df9f2fb8f3dc)으로 PR #25에 push됐습니다.
 
-| 패키지 | lockfile 현재 | 패치 후보 / 기준 |
+| 패키지 | 기존 | 갱신된 원격 lockfile |
 | --- | --- | --- |
-| next | 16.3.5 | 16.4.3 (동일 메이저의 안정 릴리스) |
-| eslint-config-next | 16.3.5 | 16.4.3 (Next와 버전 정렬) |
-| follow-redirects | 1.16.0 | 1.16.1 이상 |
-| sharp | 0.35.4 | 0.35.5 이상 |
-| source-map-js | 1.2.1 | 1.2.2 이상 |
-| zod | 4.6.5 | 4.6.6 이상 |
-| brace-expansion | 1.1.18 등 중복 | `npm audit`에서 패치 가능한 버전 검토 |
+| next | 16.3.5 | **16.4.3** |
+| eslint-config-next | 16.3.5 | **16.4.3** |
+| follow-redirects | 1.16.0 | **1.16.2** |
+| sharp | 0.35.4 | **0.35.5** |
+| source-map-js | 1.2.1 | **1.2.2** |
+| zod | 4.6.5 | **4.6.7** |
+| brace-expansion | 1.1.18 외 중복 | **1.1.21 / 5.0.12** |
 
-**중요:** 이 파일은 대응 계획입니다. 패키지/잠금 파일은 아직 바꾸지 않았습니다. 변경 결과를 검증하지 않은 상태에서 수동으로 lockfile의 버전·integrity 값을 덮어쓰지 않습니다.
+**실측 결과:** Node v24.22.2, npm 11.19.1에서 `npm ci`(취약점 0건), `npm run lint` PASS, `NEXT_PUBLIC_API_BASE_URL=/api npm run build` PASS(정적 8/8, 동적 `/posts/[id]`), `npm audit --omit=dev` 0건, `npm audit` 0건. `git diff --check`도 빈 출력으로 통과했고, 변경 파일은 `package.json`과 `package-lock.json` 2개였습니다. GitHub PR 비교 결과 병합 충돌은 `clean`이지만, 이는 이미지 런타임 검증이나 운영 배포 승인과 다릅니다.
 
-별도 개발 환경에서 Node 24 LTS 또는 지원되는 22.x로 전환한 뒤, **현재 브랜치의 작업 트리가 깨끗한지 먼저 확인**하고 아래를 실행합니다.
+**잔여 경고:** npm 11은 `unrs-resolver@1.12.2`의 `postinstall`이 allowScripts의 승인 대상이 아니라고 출력했습니다. `npm install-scripts ls`에서 재확인했으며, 변경을 일으키는 일괄 허용 명령은 실행하지 않았습니다. ESLint `9.39.5`의 지원 종료(deprecated) 경고도 남아 있습니다. 두 경고는 현재 lint/build 실패나 npm audit 취약점으로 판정하지 않지만, 관련 스크립트의 런타임 영향/호환성은 추가 검토합니다.
 
-```bash
-git status --short
-node -v
-
-# 패키지와 lockfile을 npm이 함께 갱신하도록 함
-npm install --save-exact next@16.4.3 eslint-config-next@16.4.3
-npm audit fix
-
-# lockfile/프로덕션 버전·호환성·보안 검증
-git diff -- package.json package-lock.json
-npm ci
-npm run lint
-NEXT_PUBLIC_API_BASE_URL=/api npm run build
-npm audit --omit=dev
-npm audit
-```
-
-`npm audit fix`는 비강제 수정만 허용하고, 원치 않는 광범위 변경이 나오면 적용 내용을 리뷰합니다. **최종 패키지 업데이트/검증이 PASS여야 관련 변경을 PR 브랜치에 푸시하고 배포를 재검토**합니다.
-
-공식 참고: [Next.js 16.4.3](https://github.com/vercel/next.js/releases/tag/v16.4.3), [Next RCE](https://github.com/advisories/GHSA-673q-mjm6-r5xr), [sharp](https://github.com/advisories/GHSA-wq5f-xc86-pv6w), [follow-redirects](https://github.com/advisories/GHSA-q3jh-wrc6-jgq8), [source-map-js](https://github.com/advisories/GHSA-68fv-2mgg-jv7q), [zod](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).
+**남은 게이트:** Docker 이미지 실제 빌드·기동, 컨테이너의 비특권 사용자 확인, 이미지 내 비밀정보 검사, 베이스 이미지 digest 고정, 프록시와 SSR 내부 API 통신 통합 검증. SSH-only 운영 서버에서 Docker/K3s/방화벽을 변경하지 않습니다.
 
 ## 배포 전 필수 검증
 
-- [x] Ubuntu 기능 브랜치의 `npm ci`, ESLint, 수정 후 Next.js 빌드 PASS (현재 Node 22.11.0 엔진 경고 남음)
-- [ ] 취약점 패치·lockfile 재생성 후 `npm ci`/lint/build 재검증 및 prod/전체 audit 통과
+- [x] Ubuntu 기능 브랜치의 Node 24.22.2에서 `npm ci`, ESLint, Next.js 16.4.3 프로덕션 빌드 PASS
+- [x] 취약점 패치·lockfile 갱신 커밋 `3641ae0` push 및 prod/전체 `npm audit` 0건 검증
 - [ ] Docker 이미지 빌드 및 `server.js` 기동, 비특권 실행 확인
 - [ ] 이미지에 `.env`·비밀정보·개인 DB 파일 포함되지 않았음 확인
 - [ ] Node.js 베이스 이미지 버전/불변 digest 확정, 이미지 태그·digest 기록
@@ -132,4 +113,4 @@ npm audit
 - [ ] 인증·게시글 목록/상세/작성 기능과 404, 재시작 회귀 확인
 - [ ] SSH-only 서버에서 K3s 설치/네트워크 활성화는 독립 복구 경로 확보·#34 정책 승인 전 **금지**
 
-변경 범위: `Dockerfile`, `.dockerignore`, `next.config.ts`, `src/api/client.ts`. 기존 프로덕션 배포는 이 PR을 병합하지 않는 한 변경되지 않습니다.
+변경 범위: `Dockerfile`, `.dockerignore`, `next.config.ts`, `src/api/client.ts`, `src/app/posts/page.tsx`, `package.json`, `package-lock.json`, 이 문서. 기존 프로덕션 배포는 이 PR을 병합하지 않는 한 변경되지 않습니다.
