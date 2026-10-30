@@ -101,10 +101,37 @@ npm audit --omit=dev
 
 **남은 게이트:** Docker 이미지 실제 빌드·기동, 컨테이너의 비특권 사용자 확인, 이미지 내 비밀정보 검사, 베이스 이미지 digest 고정, 프록시와 SSR 내부 API 통신 통합 검증. SSH-only 운영 서버에서 Docker/K3s/방화벽을 변경하지 않습니다.
 
+## CI/CD 자동화 단계 (GitHub Actions)
+
+`.github/workflows/frontend-ci.yml`을 기능 브랜치에서 작성했습니다. GitHub Actions에서 실제 실행에 성공한 증적은 아직 없으므로 아래는 **트리거/작동 의도**이며 CI PASS를 뜻하지 않습니다.
+
+| 이벤트 | 자동 실행 | 외부 영향 |
+| --- | --- | --- |
+| `main` 대상 PR 생성·업데이트 | Node 24 `npm ci`, ESLint, 프로덕션/전체 npm audit(High 이상 차단), Next.js build, Docker build 및 HTTP 스모크 테스트 | GitHub-hosted runner의 루프백에서만 실행, **GHCR 미게시 / 서버 미배포** |
+| `main` push (PR 병합 포함) | 위 품질/이미지 검증이 모두 통과해야 GHCR에 `ghcr.io/supernova080710/blog-frontend:sha-<커밋 SHA>` 게시 | **GHCR 이미지만 게시**, K3s 자동 배포 **없음** |
+| `workflow_dispatch` | 품질/이미지 검증 | 이 워크플로는 수동 실행해도 GHCR에 게시하지 않음 |
+| Kubernetes 배포 | **구현하지 않음** | 복구 콘솔·UFW/Flannel·보안 담당 승인 게이트 이전에는 원격 클러스터 연결 금지 |
+
+### 구현된 보안 경계
+
+- 워크플로 기본 `GITHUB_TOKEN`은 `contents: read`. PR에서 GitHub 패키지 쓰기 권한을 사용하지 않습니다.
+- `publish-ghcr`만 `main`의 push 시 실행하고 `packages: write`를 사용합니다. 개인 액세스 토큰(PAT), SSH 키, kubeconfig, K3s API 자격증명을 GitHub에 추가하지 않습니다.
+- PR에서 빌드한 Docker 이미지는 push하지 않고, runner에서 `127.0.0.1:3100`만 바인딩하여 홈페이지 응답·비-root 프로세스·로컬 `.env` 제외를 확인합니다.
+- 공개 노출 범위는 별개입니다. 새 GHCR 패키지는 접근 정책/저장소 권한을 검토해야 하며, K3s가 private 이미지를 pull하려면 별도의 최소 읽기 권한 정책이 필요할 수 있습니다.
+- 이미지는 `latest`가 아닌 커밋 SHA 태그로 구분합니다. 실제 K3s 배포 시에는 게시된 digest를 고정할 계획이며, 현재 digest 기록·배포는 미구현입니다.
+- Docker 기본 Node 이미지 `node:24-bookworm-slim`은 아직 불변 digest에 고정되지 않았습니다. **운영 배포 승인 전 이미지 digest 고정 및 실빌드 검증**이 필요합니다.
+- GitHub Actions의 검증 결과가 성공하기 전에는 해당 워크플로를 PASS로 기록하지 않습니다. Branch protection 필수 검사 설정은 GitHub 저장소 관리 정책 검토 후 별도 적용합니다.
+
+### 최종 CD 구현안 (승인 전 제안)
+
+향후 K3s 클러스터 안정화 후, CI가 GHCR에 게시한 이미지의 digest를 별도 환경별 배포 설정 저장소에 반영하고 승인된 GitOps 컨트롤러(예: Argo CD) 또는 최소 권한 배포 에이전트가 해당 변경을 동기화하도록 설계합니다. **코드를 단순 push할 때마다 운영 Pod가 교체되지 않도록**, PR 검증과 `main` 병합/승인된 배포를 분리합니다. 현재 서버는 SSH 외 독립 복구 수단이 확인되지 않아 어떤 배포 에이전트도 연결하지 않았습니다.
+
 ## 배포 전 필수 검증
 
 - [x] Ubuntu 기능 브랜치의 Node 24.22.2에서 `npm ci`, ESLint, Next.js 16.4.3 프로덕션 빌드 PASS
 - [x] 취약점 패치·lockfile 갱신 커밋 `3641ae0` push 및 prod/전체 `npm audit` 0건 검증
+- [x] GitHub Actions PR 품질/이미지 검증 및 `main` GHCR 게시 워크플로 **작성** (실제 실행 NOT RUN)
+- [ ] GitHub Actions 실제 CI/이미지 스모크 PASS 및 GHCR 접근·권한 검증
 - [ ] Docker 이미지 빌드 및 `server.js` 기동, 비특권 실행 확인
 - [ ] 이미지에 `.env`·비밀정보·개인 DB 파일 포함되지 않았음 확인
 - [ ] Node.js 베이스 이미지 버전/불변 digest 확정, 이미지 태그·digest 기록
@@ -113,4 +140,4 @@ npm audit --omit=dev
 - [ ] 인증·게시글 목록/상세/작성 기능과 404, 재시작 회귀 확인
 - [ ] SSH-only 서버에서 K3s 설치/네트워크 활성화는 독립 복구 경로 확보·#34 정책 승인 전 **금지**
 
-변경 범위: `Dockerfile`, `.dockerignore`, `next.config.ts`, `src/api/client.ts`, `src/app/posts/page.tsx`, `package.json`, `package-lock.json`, 이 문서. 기존 프로덕션 배포는 이 PR을 병합하지 않는 한 변경되지 않습니다.
+변경 범위: `Dockerfile`, `.dockerignore`, `next.config.ts`, `src/api/client.ts`, `src/app/posts/page.tsx`, `package.json`, `package-lock.json`, `.github/workflows/frontend-ci.yml`, 이 문서. 기존 프로덕션 배포는 이 PR을 병합하지 않는 한 변경되지 않습니다.
